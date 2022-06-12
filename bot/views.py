@@ -5,16 +5,18 @@ from twilio.rest import Client
 import environ
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
-# from urllib import request
 import requests
 import time
+from dotenv import load_dotenv, find_dotenv
 
-account_sid = "AC53aa8197de6f7767c509335a6de6588a"
-auth_token = "4815fd6bb435d0afb2b9f7c6b617cea7"
+load_dotenv(find_dotenv())
+
+account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+auth_token = os.getenv("TWILIO_AUTH_TOKEN")
 client = Client(account_sid, auth_token)
 
-# <QueryDict: {'SmsMessageSid': ['SM4cc77334aff21573e5fdb72f7502f055'], 'NumMedia': ['0'], 'ProfileName': ['Ntita'],
-#  'SmsSid': ['SM4cc77334aff21573e5fdb72f7502f055'], 'WaId': ['27849888448'], 'SmsStatus': ['received'], 'Body': ['hello'], 'To': ['whatsapp:+14155238886'], 'NumSegments': ['1'], 'ReferralNumMedia': ['0'], 'MessageSid': ['SM4cc77334aff21573e5fdb72f7502f055'], 'AccountSid': ['AC53aa8197de6f7767c509335a6de6588a'], 'From': ['whatsapp:+27849888448'], 'ApiVersion': ['2010-04-01']} >
+# <QueryDict: {'SmsMessageSid': ['SM4cc77334aff21573e5fdb72f7502f055'], 'NumMedia': ['0'], 'ProfileName': ['name'],
+#  'SmsSid': ['SM4cc77334aff21573e5fdb72f7502f055'], 'WaId': ['*'], 'SmsStatus': ['received'], 'Body': ['hello'], 'To': ['whatsapp:+14155238886'], 'NumSegments': ['1'], 'ReferralNumMedia': ['0'], 'MessageSid': ['SM4cc77334aff21573e5fdb72f7502f055'], 'AccountSid': ['AC53aa8197de6f7767c509335a6de6588a'], 'From': ['whatsapp:+27*'], 'ApiVersion': ['2010-04-01']} >
 
 
 @ csrf_exempt
@@ -82,4 +84,4 @@ def bot(request):
                     )
 
     # print(r_json)
-    return HttpResponse("Hello")
+    return render(request, "bot.html")
