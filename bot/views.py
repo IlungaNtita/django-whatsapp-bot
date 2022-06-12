@@ -1,3 +1,4 @@
+from email import message
 from django.http import HttpResponse
 from django.shortcuts import render
 import os
@@ -8,6 +9,7 @@ from django.shortcuts import render
 import requests
 import time
 from dotenv import load_dotenv, find_dotenv
+from bot.models import Message, Profile
 
 load_dotenv(find_dotenv())
 
@@ -25,63 +27,192 @@ def bot(request):
         body = request.POST["Body"]
         sender_name = request.POST["ProfileName"]
         sender_number = request.POST["WaId"]
+        if Profile.objects.filter(number=sender_number).exists():
+            profile = Profile.objects.get(number=sender_number)
 
-        # Check if the input is a valid number
-        if body.isnumeric():
-            print("number")
-            if int(body) == 1:
-                client.messages.create(
-                    body=f'Thanks for subscribing to whatsapp bible we will now send you a bible verse every day.',
-                    from_='whatsapp:+14155238886',
-                    to=f'whatsapp:+{sender_number}'
-                )
-            else:
-                client.messages.create(
-                    body=f'Sorry we have no option for {body}.',
-                    from_='whatsapp:+14155238886',
-                    to=f'whatsapp:+{sender_number}'
-                )
-                client.messages.create(
-                    body=f'These are the available commands:\n1. Type "1" to subscribe to daily verses.\n2. To read a passage from the bible type the book followed by the scripture, example "Genesis 1:1".\n4. To read a chapter from the bible type the book followed by the chapter, example "Genesis 1".',
-                    from_='whatsapp:+14155238886',
-                    to=f'whatsapp:+{sender_number}'
-                )
-        elif not body.isnumeric():
-            input = body.lower()
-            if input:
-                url = f"https://bible-api.com/{input}"
-                r = requests.get(url)
-                if r.status_code == 200:
-                    try:
-                        r_json = r.json()
-                        client.messages.create(
-                            body=r_json["text"],
-                            from_='whatsapp:+14155238886',
-                            to=f'whatsapp:+{sender_number}'
-                        )
-                    except Exception as e:
-                        print(f'json_data:Error {e}')
-                        print(r_json["verses"])
-                        verses = r_json["verses"]
-                        for verse in verses:
+            # Check if the input is a valid number
+            if body.isnumeric():
+                print("number")
+                if int(body) == 1:
+                    bot_response = f'Thanks for subscribing to whatsapp bible we will now send you a bible verse every day.'
+                    client.messages.create(
+                        body=bot_response,
+                        from_='whatsapp:+14155238886',
+                        to=f'whatsapp:+{sender_number}'
+                    )
+                    message_create = Message.objects.create(message=body,
+                                                            response=bot_response,
+                                                            number=sender_number,
+                                                            profile_id=profile.id)
+                    message_create.save()
+                else:
+                    bot_response = f'Sorry we have no option for {body}.'
+                    client.messages.create(
+                        body=bot_response,
+                        from_='whatsapp:+14155238886',
+                        to=f'whatsapp:+{sender_number}'
+                    )
+                    client.messages.create(
+                        body=f'These are the available commands:\n1. Type "1" to subscribe to daily verses.\n2. To read a passage from the bible type the book followed by the scripture, example "Genesis 1:1".\n4. To read a chapter from the bible type the book followed by the chapter, example "Genesis 1".',
+                        from_='whatsapp:+14155238886',
+                        to=f'whatsapp:+{sender_number}'
+                    )
+                    message_create = Message.objects.create(message=body,
+                                                            response=bot_response,
+                                                            number=sender_number,
+                                                            profile_id=profile.id)
+                    message_create.save()
+            elif not body.isnumeric():
+                input = body.lower()
+                if input:
+                    url = f"https://bible-api.com/{input}"
+                    r = requests.get(url)
+                    if r.status_code == 200:
+                        try:
+                            r_json = r.json()
+                            bot_response = r_json["text"]
                             client.messages.create(
-                                body=f"{verse['verse']}\n{verse['text']}",
+                                body=bot_response,
                                 from_='whatsapp:+14155238886',
                                 to=f'whatsapp:+{sender_number}'
                             )
-                            time.sleep(3)
-                        pass
-                else:
+                            message_create = Message.objects.create(message=body,
+                                                                    response=bot_response,
+                                                                    number=sender_number,
+                                                                    profile_id=profile.id)
+                            message_create.save()
+                        except Exception as e:
+                            print(f'json_data:Error {e}')
+                            print(r_json["verses"])
+                            verses = r_json["verses"]
+                            bot_response = ""
+                            for verse in verses:
+                                client.messages.create(
+                                    body=f"{verse['verse']}\n{verse['text']}",
+                                    from_='whatsapp:+14155238886',
+                                    to=f'whatsapp:+{sender_number}'
+                                )
+                                bot_response = f"{verse['verse']}\n{verse['text']}"
+                                time.sleep(3)
+                            message_create = Message.objects.create(message=body,
+                                                                    response=bot_response,
+                                                                    number=sender_number,
+                                                                    profile_id=profile.id)
+                            message_create.save()
+                            pass
+                    else:
+                        bot_response = f'Good day {sender_name}, how can I help you today?'
+                        client.messages.create(
+                            body=bot_response,
+                            from_='whatsapp:+14155238886',
+                            to=f'whatsapp:+{sender_number}'
+                        )
+                        client.messages.create(
+                            body=f'You have reached whatsapp.bible.\nThese are the available commands:\n1. Type "1" to subscribe to daily verses.\n2. To read a passage from the bible type the book followed by the scripture, example "Genesis 1:1".\n4. To read a chapter from the bible type the book followed by the chapter, example "Genesis 1".',
+                            from_='whatsapp:+14155238886',
+                            to=f'whatsapp:+{sender_number}'
+                        )
+                        message_create = Message.objects.create(message=body,
+                                                                response=bot_response,
+                                                                number=sender_number,
+                                                                profile_id=profile.id)
+                        message_create.save()
+        elif not Profile.objects.filter(number=sender_number).exists():
+            profile_create = Profile.objects.create(name=sender_name,
+                                                    number=sender_number)
+
+            profile_create.save()
+            print("profile created")
+            profile = Profile.objects.get(number=sender_number)
+
+            # Check if the input is a valid number
+            if body.isnumeric():
+                if int(body) == 1:
+                    bot_response = f'Thanks for subscribing to whatsapp bible we will now send you a bible verse every day.'
                     client.messages.create(
-                        body=f'Good day {sender_name}, how can I help you today?',
+                        body=bot_response,
                         from_='whatsapp:+14155238886',
                         to=f'whatsapp:+{sender_number}'
                     )
+                    message_create = Message.objects.create(message=body,
+                                                            response=bot_response,
+                                                            number=sender_number,
+                                                            profile_id=profile.id)
+                    message_create.save()
+                else:
+                    bot_response = f'Sorry we have no option for {body}.'
                     client.messages.create(
-                        body=f'You have reached whatsapp.bible.\nThese are the available commands:\n1. Type "1" to subscribe to daily verses.\n2. To read a passage from the bible type the book followed by the scripture, example "Genesis 1:1".\n4. To read a chapter from the bible type the book followed by the chapter, example "Genesis 1".',
+                        body=bot_response,
                         from_='whatsapp:+14155238886',
                         to=f'whatsapp:+{sender_number}'
                     )
 
-    # print(r_json)
+                    client.messages.create(
+                        body=f'These are the available commands:\n1. Type "1" to subscribe to daily verses.\n2. To read a passage from the bible type the book followed by the scripture, example "Genesis 1:1".\n4. To read a chapter from the bible type the book followed by the chapter, example "Genesis 1".',
+                        from_='whatsapp:+14155238886',
+                        to=f'whatsapp:+{sender_number}'
+                    )
+                    message_create = Message.objects.create(message=body,
+                                                            response=bot_response,
+                                                            number=sender_number,
+                                                            profile_id=profile.id)
+                    message_create.save()
+            elif not body.isnumeric():
+                input = body.lower()
+                if input:
+                    url = f"https://bible-api.com/{input}"
+                    r = requests.get(url)
+                    if r.status_code == 200:
+                        r_json = r.json()
+                        try:
+                            bot_response = r_json["text"]
+
+                            client.messages.create(
+                                body=bot_response,
+                                from_='whatsapp:+14155238886',
+                                to=f'whatsapp:+{sender_number}'
+                            )
+                            message_create = Message.objects.create(message=body,
+                                                                    response=bot_response,
+                                                                    number=sender_number,
+                                                                    profile_id=profile.id)
+                            message_create.save()
+
+                        except Exception as e:
+                            print(f'json_data:Error {e}')
+                            print(r_json["verses"])
+                            verses = r_json["verses"]
+
+                            bot_response = ""
+                            for verse in verses:
+                                client.messages.create(
+                                    body=f"{verse['verse']}\n{verse['text']}",
+                                    from_='whatsapp:+14155238886',
+                                    to=f'whatsapp:+{sender_number}'
+                                )
+                                bot_response = f"{verse['verse']}\n{verse['text']}"
+                                time.sleep(3)
+                            message_create = Message.objects.create(message=body,
+                                                                    response=bot_response,
+                                                                    number=sender_number,
+                                                                    profile_id=profile.id)
+                            message_create.save()
+                            pass
+                    else:
+                        bot_response = f'Good day {sender_name}, how can I help you today?'
+                        client.messages.create(
+                            body=bot_response,
+                            from_='whatsapp:+14155238886',
+                            to=f'whatsapp:+{sender_number}'
+                        )
+                        client.messages.create(
+                            body=f'You have reached whatsapp.bible.\nThese are the available commands:\n1. Type "1" to subscribe to daily verses.\n2. To read a passage from the bible type the book followed by the scripture, example "Genesis 1:1".\n4. To read a chapter from the bible type the book followed by the chapter, example "Genesis 1".',
+                            from_='whatsapp:+14155238886',
+                            to=f'whatsapp:+{sender_number}'
+                        )
+                        message_create = Message.objects.create(message=body,
+                                                                response=bot_response,
+                                                                number=sender_number,
+                                                                profile_id=profile.id)
+                        message_create.save()
     return render(request, "bot.html")
