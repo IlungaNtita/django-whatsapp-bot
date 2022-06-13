@@ -19,7 +19,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/4.1.0/mdb.min.css"
       rel="stylesheet"
     />
-    <title>Home</title>
+    <title>Messages</title>
   </head>
   <body>
     <div>
@@ -36,31 +36,23 @@
             <!--Section: Tables-->
             <section>
               <div class="text-center">
-                <h4><strong>Profiles</strong></h4>
+                <h4><strong>Messages</strong></h4>
               </div>
 
               <table class="table table-striped">
                 <thead>
                   <tr>
-                    <th scope="col">Name</th>
+                    <th scope="col">Message</th>
+                    <th scope="col">Response</th>
                     <th scope="col">Number</th>
-                    <th scope="col">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {% for profile in profile_list %}
+                  {% for message in message_list.message_set.all %}
                   <tr>
-                    <td>{{profile.name}}</td>
-                    <td>+{{profile.number}}</td>
-                    <td>
-                      <a
-                        class="btn btn-outline-light"
-                        href="/messages/{{ profile.id }}"
-                        target="_blank"
-                        role="button"
-                        >View messages</a
-                      >
-                    </td>
+                    <td>{{message.message}}</td>
+                    <td>{{message.response}}</td>
+                    <td>+{{message.number}}</td>
                   </tr>
                   {% endfor %}
                 </tbody>

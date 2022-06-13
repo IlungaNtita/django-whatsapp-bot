@@ -3,8 +3,9 @@
 created by ilunga ntita
 """
 from django.urls import path
-from .views import bot
+from .views import bot, messages
 
 urlpatterns = [
-    path('', bot),
+    path('', bot, name="home"),
+    path('messages/<id>', messages, name="messages"),
 ]
